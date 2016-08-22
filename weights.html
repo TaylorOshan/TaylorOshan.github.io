@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+        <title>Spatial weights for flow data</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/theme/css/main.css" type="text/css" />
+        <link href="/" type="application/atom+xml" rel="alternate" title="Building SpInt ATOM Feed" />
+
+
+        <!--[if IE]>
+                <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+        <!--[if lte IE 7]>
+                <link rel="stylesheet" type="text/css" media="all" href="/css/ie.css"/>
+                <script src="/js/IE8.js" type="text/javascript"></script><![endif]-->
+
+        <!--[if lt IE 7]>
+                <link rel="stylesheet" type="text/css" media="all" href="/css/ie6.css"/><![endif]-->
+
+</head>
+
+<body id="index" class="home">
+        <header id="banner" class="body">
+                <h1><a href="/index.html">Building SpInt </a></h1>
+                <nav><ul>
+                <li><a href="/">Archives</a></li>
+                </ul></nav>
+        </header><!-- /#banner -->
+
+<section id="content" class="body">
+<article>
+        <header> <h1 class="entry-title"><a href="weights.html"
+        rel="bookmark" title="Permalink to Spatial weights for flow data">Spatial weights for flow data</a></h1>  </header>
+        <div class="entry-content">
+<footer class="post-info">
+        <abbr class="published" title="2016-07-08T14:23:00-07:00">
+                Fri 08 July 2016
+        </abbr>
+
+        <address class="vcard author">
+                By <a class="url fn" href="/author/taylor-oshan.html">Taylor Oshan</a>
+        </address>
+<p>In <a href="/category/misc.html">misc</a>. </p>
+<p>tags: <a href="/tag/gsoc.html">GSOC</a></p></p></footer><!-- /.post-info --><!-- /.post-info -->
+        <p>This week work on spatial weights for flow data began. So far it has resulted in
+three new functions. The first two functions refer to two different types of the
+weights while the third is a helper function.</p>
+<p>The two types of weights are origin-destination spatial contiguity weights which
+denote two flows to be neighbors if their origins or their destinations are
+spatially contiguous. The <a class="reference external" href="https://gist.github.com/TaylorOshan/ca2bdee790620d4d1983991a01620555">first</a> type of weight is created by the function ODW() takes as input an O X O W object denoting
+origin spatial contiguity and a D x D W object denoting destination contiguity and
+then returns the  O*D x O*D origin-destination W object where O = # of origins and D = # of destinations. The <a class="reference external" href="https://gist.github.com/TaylorOshan/51e320a9c5db0a8b564458c07af8f4cb">second</a> weight, network-based weights, interprets
+assocations among flows to mean that they share nodes an abstract network
+representation of the flow system. To this end, two flows may be neighbors is
+they share any single node, if they share an origin node, if they share a
+destination node, or if they share an origin or a destination node. Each
+scenario produces somewhat different spatial weights capturing slightly
+different notions of associations. This function, netW(), takes as input a list
+of tuples, (origin,destination) that represent the edges of a network, as well
+as a parameter to denote which type of nodal association to use, and returns an
+O*D x O*D W object.</p>
+<p>Finally, the third function was designed to convert a matrix or array that
+denotes flows or network edges into a list of tuples to be used as input to the
+netW() function described above.</p>
+<p>Still to come is a distance-based weight that uses all four dimenions avialalbe
+when comparing two flows (origin 1, destination 1, origin 2, destination 2).</p>
+
+        </div><!-- /.entry-content -->
+
+</article>
+</section>
+
+        <aside id="sidebar">
+                <div class="widget">
+                        <h2>Categories</h2>
+                        <ul>
+                           <li class="active"><a href="/category/misc.html">misc</a></li>
+                        </ul>
+                </div>
+                <div class="widget blogroll">
+                        <h2>Blogroll</h2>
+                        <ul>
+                            <li><a href="http://getpelican.com/">Pelican</a></li>
+                            <li><a href="http://python.org/">Python.org</a></li>
+                            <li><a href="http://jinja.pocoo.org/">Jinja2</a></li>
+                            <li><a href="#">You can modify those links in your config file</a></li>
+                        </ul>
+                </div><!-- /.blogroll -->
+                <div class="widget social">
+                        <h2>Social</h2>
+                        <ul>
+                            <li><a href="/feeds/all.atom.xml" rel="alternate">atom feed</a></li>
+
+                            <li><a href="#">You can add links in your config file</a></li>
+                            <li><a href="#">Another social link</a></li>
+                        </ul>
+                </div><!-- /.social -->
+        </aside><!-- /#sidebar -->
+
+        <footer id="footer" class="body">
+                <address id="about" class="vcard body">
+                Proudly powered by <a href="http://alexis.notmyidea.org/pelican/">pelican</a>, which takes great advantages of <a href="http://python.org">python</a>.
+                </address><!-- /#about -->
+
+                <p>The theme is «notmyidea-cms», a modified version of «notmyidea», the default theme.</p>
+        </footer><!-- /#footer -->
+
+</body>
+</html>

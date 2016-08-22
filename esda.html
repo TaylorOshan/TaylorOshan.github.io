@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+        <title>Exploratory data analysis for spatial interaction</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/theme/css/main.css" type="text/css" />
+        <link href="/" type="application/atom+xml" rel="alternate" title="Building SpInt ATOM Feed" />
+
+
+        <!--[if IE]>
+                <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+        <!--[if lte IE 7]>
+                <link rel="stylesheet" type="text/css" media="all" href="/css/ie.css"/>
+                <script src="/js/IE8.js" type="text/javascript"></script><![endif]-->
+
+        <!--[if lt IE 7]>
+                <link rel="stylesheet" type="text/css" media="all" href="/css/ie6.css"/><![endif]-->
+
+</head>
+
+<body id="index" class="home">
+        <header id="banner" class="body">
+                <h1><a href="/index.html">Building SpInt </a></h1>
+                <nav><ul>
+                <li><a href="/">Archives</a></li>
+                </ul></nav>
+        </header><!-- /#banner -->
+
+<section id="content" class="body">
+<article>
+        <header> <h1 class="entry-title"><a href="esda.html"
+        rel="bookmark" title="Permalink to Exploratory data analysis for spatial interaction">Exploratory data analysis for spatial interaction</a></h1>  </header>
+        <div class="entry-content">
+<footer class="post-info">
+        <abbr class="published" title="2016-07-01T19:08:00-07:00">
+                Fri 01 July 2016
+        </abbr>
+
+        <address class="vcard author">
+                By <a class="url fn" href="/author/taylor-oshan.html">Taylor Oshan</a>
+        </address>
+<p>In <a href="/category/misc.html">misc</a>. </p>
+<p>tags: <a href="/tag/gsoc.html">GSOC</a></p></p></footer><!-- /.post-info --><!-- /.post-info -->
+        <p>Over the past two weeks I have worked on some exploratory tools for spatial
+interaction data. First, I have coded up a recently proposed spatial
+autocorrelation statistic for vectors. The statistic itself is a variation of
+Moran's I, though it requires unique randomization technqiues to carry out
+significance testing because the udnerlying distribution of vectors is unknown.
+The original paper put forth two randomization techniques, which I have tested
+<a class="reference external" href="https://gist.github.com/TaylorOshan/bd4b050ac93cc89a44c636842794f942">here</a> and which give very different results. More work will need to be done here
+to decide the best way to carry out hypothesis testing of the vector Moran's I.</p>
+<p>I also created helper functions for the Gravity, Production, and Attraction
+classes, which carry out origin/destination specific gravity models so that
+local statistics and parameters can be obtained and mapped to explore potential
+non-stationarity in data-generating processes. In each case, the helper function
+is called local, thugh it <a class="reference external" href="https://gist.github.com/TaylorOshan/79aa3f71c573d8d7cac33463bb7efa9b">works</a> a bit differently for Gravity models, which
+can be origin-specific or destination-specific in comparion to constrained
+models which can only be either origin-specific or destination-specific. If a
+user tries to use the local function with a doubly-constrained model then they
+get a not implemented error since it is not possible to compute
+location-specific doubly constrained models due to a lack of degrees of freedom.</p>
+<p>Looking forward, the next to weeks will focus on building functions to produce
+weighting functions that consider the spatial proximity of both origin and
+destintion neighbors, which will be useful or exploratory analysis and also for
+specifying autoregressive/spatial filter models.</p>
+
+        </div><!-- /.entry-content -->
+
+</article>
+</section>
+
+        <aside id="sidebar">
+                <div class="widget">
+                        <h2>Categories</h2>
+                        <ul>
+                           <li class="active"><a href="/category/misc.html">misc</a></li>
+                        </ul>
+                </div>
+                <div class="widget blogroll">
+                        <h2>Blogroll</h2>
+                        <ul>
+                            <li><a href="http://getpelican.com/">Pelican</a></li>
+                            <li><a href="http://python.org/">Python.org</a></li>
+                            <li><a href="http://jinja.pocoo.org/">Jinja2</a></li>
+                            <li><a href="#">You can modify those links in your config file</a></li>
+                        </ul>
+                </div><!-- /.blogroll -->
+                <div class="widget social">
+                        <h2>Social</h2>
+                        <ul>
+                            <li><a href="/feeds/all.atom.xml" rel="alternate">atom feed</a></li>
+
+                            <li><a href="#">You can add links in your config file</a></li>
+                            <li><a href="#">Another social link</a></li>
+                        </ul>
+                </div><!-- /.social -->
+        </aside><!-- /#sidebar -->
+
+        <footer id="footer" class="body">
+                <address id="about" class="vcard body">
+                Proudly powered by <a href="http://alexis.notmyidea.org/pelican/">pelican</a>, which takes great advantages of <a href="http://python.org">python</a>.
+                </address><!-- /#about -->
+
+                <p>The theme is «notmyidea-cms», a modified version of «notmyidea», the default theme.</p>
+        </footer><!-- /#footer -->
+
+</body>
+</html>

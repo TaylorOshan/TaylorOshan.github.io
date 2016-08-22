@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+        <title>Wrapping Up</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/theme/css/main.css" type="text/css" />
+        <link href="/" type="application/atom+xml" rel="alternate" title="Building SpInt ATOM Feed" />
+
+
+        <!--[if IE]>
+                <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+        <!--[if lte IE 7]>
+                <link rel="stylesheet" type="text/css" media="all" href="/css/ie.css"/>
+                <script src="/js/IE8.js" type="text/javascript"></script><![endif]-->
+
+        <!--[if lt IE 7]>
+                <link rel="stylesheet" type="text/css" media="all" href="/css/ie6.css"/><![endif]-->
+
+</head>
+
+<body id="index" class="home">
+        <header id="banner" class="body">
+                <h1><a href="/index.html">Building SpInt </a></h1>
+                <nav><ul>
+                <li><a href="/">Archives</a></li>
+                </ul></nav>
+        </header><!-- /#banner -->
+
+<section id="content" class="body">
+<article>
+        <header> <h1 class="entry-title"><a href="wrap_up.html"
+        rel="bookmark" title="Permalink to Wrapping Up">Wrapping Up</a></h1>  </header>
+        <div class="entry-content">
+<footer class="post-info">
+        <abbr class="published" title="2016-08-16T10:13:00-07:00">
+                Tue 16 August 2016
+        </abbr>
+
+        <address class="vcard author">
+                By <a class="url fn" href="/author/taylor-oshan.html">Taylor Oshan</a>
+        </address>
+<p>In <a href="/category/misc.html">misc</a>. </p>
+</p></footer><!-- /.post-info --><!-- /.post-info -->
+        <p>In the last week of the GSOC work, the focus is on wrapping everything up, which
+means finalizing code and documentation, providing useful examples for
+educational use, and reflecting on the entire project to provide a plan on how
+to continue to grow the project beyond GSOC 2016.</p>
+<p>The finalized code and documentation will be reflected in the project itself,
+where as educational materials will be in the form of a jupyter notebook
+that demonstrate various features of the project on a real life dataset (NYC
+CITI bike share trips). The notebook can be found <a class="reference external" href="https://github.com/TaylorOshan/pysal/tree/spint/pysal/contrib/spint/notebooks/examples">here</a>. Other experiments and
+proto-typing notebooks can be found in <a class="reference external" href="https://github.com/TaylorOshan/pysal/tree/spint/pysal/contrib/spint/notebooks">this</a> directory.</p>
+<p>In order to systematically reflect on the progress made throughout the project,
+I will now review the primary features that were developed, linking back to
+pertinent blog posts where possible.</p>
+<div class="section" id="api-design-and-the-spint-framework">
+<h2>API Design and The SpInt Framework</h2>
+<p>The primary API consists of four user-exposed classes: Gravity, Production, Attraction, and
+Doubly, which all inherit from a base class called BaseGravity. All of these
+classes can found in <a class="reference external" href="https://github.com/TaylorOshan/pysal/blob/spint/pysal/contrib/spint/gravity.py">gravity</a> script. The user classes
+accept the appropriate inputs for each of the four types of gravity-based
+spatial interaction model: basic gravity model, production-constrained
+(origin-constrained), attraction-constrained (destination-constrained), and
+doubly constrained. The BaseGravity class does most of the heavy lifting in
+terms of preparing the apprpriate design matrix. For now, BaseGravity inherits
+from CountModel, which is designed to be a flexible generalized linear model
+class that can accommodate several types of count models (i.e., Poisson,
+negative binomial, etc.) and several different types of parameter estimation
+(i.e., iteratively weighted least squares, gradient optimization, etc.). In
+reality, CountModels only currently supports Poisson GLM's (based on a
+customized implementation of statsmodels GLM) and iteratively
+weighted least sqaures estimation, which will be discussed further later in this
+review. In addition, the user may have a continuous
+dependent variable, say trade flows in dollars between countries, and therefore
+might want to use a non-count model, like Gaussian ordianry least sqaures.
+Hence, it may make more sense in the future to move away from the CountModel,
+and just have the BaseGravity class do the necessary dispatching to the
+approriate probability model/estimation techniques.</p>
+<p>Related blog post(s): post <a class="reference external" href="https://tayloroshan.github.io/api-design.html">one</a>; post <a class="reference external" href="https://tayloroshan.github.io/framework.html">two</a></p>
+</div>
+<div class="section" id="sparse-compatibility">
+<h2>Sparse Compatibility</h2>
+<p>Because the constrained variety of gravity models (Production, Attraction,
+Doubly) require either N or 2N categorical variables (fixed effects), where N is the number of locations
+that flows may move between, a very large sparse design matrix is necessary for
+any non-trivial dataset. Therefore, a large amunt of effort was put into
+efficiently building the sparse deisgn matrix, specifically the sparse
+categorical variables. After much testing and benchmarking, a function was
+developed that can construct the sparse <a class="reference external" href="https://github.com/TaylorOshan/pysal/blob/spint/pysal/contrib/spint/utils.py">categorical</a> variable portion of the
+design matrix relatively quickly. This function is particualr fast if the set of
+locations, N, is index using integers, though it is still efficient if unqiue
+locations are labeled using string identifiers. The sparse design matrix allows
+more efficient model calibration. For example, a spatial system akin to all of
+the counties in US (~3k locations or ~9 million observations), requires less
+than a minute to claibrate a production-constrained model (3k fixed effects) on my notebook about
+two minutes for a doubly-constrained (6k fixed effects) model on my notebook.
+It was decided to use normal array's for the basic Gravity model since it does
+not have fixed effects by defualt, has dense matrices, and therefore becomes
+inefficient as the number of observations grows if sparse matrices are used.</p>
+<p>Related blog post(s): post <a class="reference external" href="https://tayloroshan.github.io/sparse_glm.html">three</a>; post <a class="reference external" href="https://tayloroshan.github.io/more-sparse.html">four</a>; post <a class="reference external" href="https://tayloroshan.github.io/sparse_cat_bottleneck.html">five</a></p>
+</div>
+<div class="section" id="testing-and-accounting-for-overdispersion">
+<h2>Testing and Accounting for Overdispersion</h2>
+<p>Since the nubmer of pointial origin-destination flow observations grows exponentially as the number of locations
+increases, and because often there are no trips occuring between many locations, spatial interaction datastes can often be overdispersed. That is, there is more variaiton in the data than would expected given the mean of the observations. Therefore, several well known tests for <a class="reference external" href="https://github.com/TaylorOshan/pysal/blob/glm_spint/pysal/contrib/spint/dispersion.py">overdispersion</a> (Cameron &amp; Trivedi, 2012) in the context of count (i.e., Poisson) models were implemented. In addition, a <a class="reference external" href="https://github.com/TaylorOshan/pysal/blob/spint/pysal/contrib/glm/family.py#L429">QuasiPoisson</a> family was added that can be activated using the Quasi=True parameterization. If it is decided to accomodate more probability models other than Poisson, as previously discussed, then the Quasi flag would be replaced with a family parameter that could be set to Gaussian, Poisson, or QuasiPoisson. The purpose of the QuasiPoisson formulation is to calibrate a Poisson GLM that allows for the variance to be different than the mean, which is a key assuption in the defualt Poisson model.</p>
+<p>Related blog post(s): post <a class="reference external" href="https://tayloroshan.github.io/testing.html">six</a></p>
+</div>
+<div class="section" id="exploratory-spatial-data-analysis-for-spatial-interaction">
+<h2>Exploratory Spatial Data Analysis for Spatial Interaction</h2>
+<p>To explore the spatial clustering nature of raw spatial interaction data an
+implementation of Moran's I spatial autocorrelation statistic for <a class="reference external" href="https://github.com/TaylorOshan/pysal/blob/spint/pysal/contrib/spint/vec_SA.py">vectors</a> was
+completed. Then several experiemnts were carried out to test the different
+randomization technqiues that coudl be used for hypothesis testing of the
+computed statistic. This analytic is good for exploring your data before you
+calibrate a model to see if there are spatial associations above and beyond what
+you might expect from otherwise random data. More will be said about the
+potential to expand this statistic at the end of this review in the 'Unexpected
+Discoveries' section.</p>
+<p>Related blog post(s): post <a class="reference external" href="https://tayloroshan.github.io/esda.html">seven</a></p>
+</div>
+<div class="section" id="investigating-non-stationarity-in-spatial-interaction">
+<h2>Investigating Non-Stationarity in Spatial Interaction</h2>
+<p>A method called local()  was added to the Gravity, Production, and Attraction classes that
+allows the models to be calibrated for each of a single location, such that a
+set of parameter estimates and associated diagnostics is acquired for individual
+subsets of data. These results can then be mapped, either using python or other
+conventional GIS software, in order to explore how relationships change over
+space.</p>
+<p>Related blog post(s): post <a class="reference external" href="https://tayloroshan.github.io/esda.html">seven</a></p>
+</div>
+<div class="section" id="spatial-weights-for-spatial-interation">
+<h2>Spatial Weights for Spatial Interation</h2>
+<p>In order to carry out the vector-based spatial autocorrelation statistics, as
+well as various types of spatial autoregressive model specifications, it is
+necessary to define spatial associations between flows using a spatial weight
+matrix. To this end, three types of spatial weights were implemented, which can
+be found in the <a class="reference external" href="https://github.com/TaylorOshan/pysal/blob/spint/pysal/weights/spintW.py">spintW</a> script in the weights mpodule. The first is a
+origin-destination contiguity-based weight that encodes two flows as a neighbor
+is they share either an origin or a destination. The second weight is based on a
+4-dimensional distance (origin x, origin y, destination x, destination y) where
+the strength of the association decays with further distances. Finally,
+network-based weights that use different types of adjacency of flows represented
+as an abstract or physical network.</p>
+<p>As part of this work I also had the opportuity to contirbute some speed-ups to
+the DistanceBand class in the Distance script of the weights module so that it
+avoided a slow loop and could leverage both dense and sparse matrices. In the
+case of the 4-dimensional diistance-based spatial weight, the resulting spatial
+weight is not sparse and so the exisiting code could become quite slow. Now it
+is possible to set the boolean parameter build_sp=False, which will be more
+effiient when the distance-weighted entries of the weight matrix are
+increasingly non-zero.</p>
+<p>Related blog post(s): post <a class="reference external" href="https://tayloroshan.github.io/weights.html">eight</a></p>
+</div>
+<div class="section" id="accounting-for-spatial-association-in-spatial-interaction-models">
+<h2>Accounting for Spatial Association in Spatial Interaction Models</h2>
+<p>It has recently been proposed that due to spatial autocorrelation in spatial
+interaction data it is necessary to account for the spatial association,
+otherwsie the estimated parameters could be biased. The solution was a variaiton
+of the classic spatial autoregressive (i.e., spatia lag) model for flows, which could
+estimate an additional parameter to capture spatial autocorrelation in the
+origins, in the destinations and/or in a combination of the origins and
+destinations (LeSage and Pace, 2008). Unfortunately, no code was released to
+support this mode specification, so I attempted to implement this new model. I
+was not able to completely replicate the model, but I was able to <a class="reference external" href="https://github.com/TaylorOshan/pysal/blob/spint/pysal/contrib/spint/notebooks/Gaussian_SAR.ipynb">extend</a> the
+existing pysal ML_Lag model to estimate all three autocorrelation parameters,
+rather than just one. I have also attemped to re-derive the appropriate
+variance-covariance matrix, though this will take some more work before it is
+completed. More on this in the 'Moving Forward' section found below.</p>
+<p>Related blog post(s): post <a class="reference external" href="https://tayloroshan.github.io/sar.html">nine</a></p>
+</div>
+<div class="section" id="assessing-model-fit-for-spatial-interaction-models">
+<h2>Assessing Model Fit for Spatial Interaction Models</h2>
+<p>Several metrics were added for assessing model fit. These include McFadden's
+pseudo r-squared (based on likelihood ratios), the adjusted McFadden's pseduo
+r-squared ro account for model complexity, D-squared or percent deviance (based
+on deviance ratio) and its adjusted counterpart, the standardized root mean
+square error (SRMSE), and the Sorenseon similarity index (SSI). The D-squared
+statistics and the pseudo r-squared statistics are properties of the GLM class,
+while the SRMSE and SSI metrics have been added as properties of the BaseGravity
+class. However, the functions to compute the SSI and SRMSE are stored in the
+<a class="reference external" href="https://github.com/TaylorOshan/pysal/blob/spint/pysal/contrib/spint/utils.py">utils</a> script since they may also be useful for detemrinistic non-gravity type
+models that could be implemented in the future.</p>
+<p>Related blog post(s): post <a class="reference external" href="https://tayloroshan.github.io/fits.html">ten</a></p>
+</div>
+<div class="section" id="unexpected-discoveries">
+<h2>Unexpected Discoveries</h2>
+<p>While implementing the vector-based spatial autcorrelation statistic, it was
+noticed that one of the randomization technqiues is not exactly random,
+depending on the hypothesis that one would like to test. In effect, when you
+produce many permutations and compare your test statistic to a distriubution of
+values, you would find that you are always rejecting your statistic. Therefore,
+there is additional work to be done here to further define different possible
+hypothesis and the appropriate randomization techniques.</p>
+</div>
+<div class="section" id="leftovers-and-moving-forward">
+<h2>Leftovers and Moving Forward</h2>
+<p>Future work will consist of completing the spatial interaction SAR model
+specification. It will also include adding in gradient-based optimization of
+likelihood functions, rather than solely iteratively weighted least squares.
+This will allow the implementation of other model extensions such as the
+zero-inflated Poisson model. I was not able to implement these features because
+I was running short on time and decided to work on the SAR model, which turned
+out to be more complicated than I originally expected. Finally, future works
+will also incorporate determinsitic models, spatial effects such as competing
+destinations and eigenvector spatial filters, and neural network spatial
+interaction models.</p>
+</div>
+
+        </div><!-- /.entry-content -->
+
+</article>
+</section>
+
+        <aside id="sidebar">
+                <div class="widget">
+                        <h2>Categories</h2>
+                        <ul>
+                           <li class="active"><a href="/category/misc.html">misc</a></li>
+                        </ul>
+                </div>
+                <div class="widget blogroll">
+                        <h2>Blogroll</h2>
+                        <ul>
+                            <li><a href="http://getpelican.com/">Pelican</a></li>
+                            <li><a href="http://python.org/">Python.org</a></li>
+                            <li><a href="http://jinja.pocoo.org/">Jinja2</a></li>
+                            <li><a href="#">You can modify those links in your config file</a></li>
+                        </ul>
+                </div><!-- /.blogroll -->
+                <div class="widget social">
+                        <h2>Social</h2>
+                        <ul>
+                            <li><a href="/feeds/all.atom.xml" rel="alternate">atom feed</a></li>
+
+                            <li><a href="#">You can add links in your config file</a></li>
+                            <li><a href="#">Another social link</a></li>
+                        </ul>
+                </div><!-- /.social -->
+        </aside><!-- /#sidebar -->
+
+        <footer id="footer" class="body">
+                <address id="about" class="vcard body">
+                Proudly powered by <a href="http://alexis.notmyidea.org/pelican/">pelican</a>, which takes great advantages of <a href="http://python.org">python</a>.
+                </address><!-- /#about -->
+
+                <p>The theme is «notmyidea-cms», a modified version of «notmyidea», the default theme.</p>
+        </footer><!-- /#footer -->
+
+</body>
+</html>

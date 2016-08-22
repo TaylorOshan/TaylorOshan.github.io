@@ -1,0 +1,456 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0"><channel><title>Building SpInt</title><link>/</link><description></description><lastBuildDate>Tue, 16 Aug 2016 10:13:00 -0700</lastBuildDate><item><title>Wrapping Up</title><link>/wrap_up.html</link><description>&lt;p&gt;In the last week of the GSOC work, the focus is on wrapping everything up, which
+means finalizing code and documentation, providing useful examples for
+educational use, and reflecting on the entire project to provide a plan on how
+to continue to grow the project beyond GSOC 2016.&lt;/p&gt;
+&lt;p&gt;The finalized code and documentation will be reflected in the project itself,
+where as educational materials will be in the form of a jupyter notebook
+that demonstrate various features of the project on a real life dataset (NYC
+CITI bike share trips). The notebook can be found &lt;a class="reference external" href="https://github.com/TaylorOshan/pysal/tree/spint/pysal/contrib/spint/notebooks/examples"&gt;here&lt;/a&gt;. Other experiments and
+proto-typing notebooks can be found in &lt;a class="reference external" href="https://github.com/TaylorOshan/pysal/tree/spint/pysal/contrib/spint/notebooks"&gt;this&lt;/a&gt; directory.&lt;/p&gt;
+&lt;p&gt;In order to systematically reflect on the progress made throughout the project,
+I will now review the primary features that were developed, linking back to
+pertinent blog posts where possible.&lt;/p&gt;
+&lt;div class="section" id="api-design-and-the-spint-framework"&gt;
+&lt;h2&gt;API Design and The SpInt Framework&lt;/h2&gt;
+&lt;p&gt;The primary API consists of four user-exposed classes: Gravity, Production, Attraction, and
+Doubly, which all inherit from a base class called BaseGravity. All of these
+classes can found in &lt;a class="reference external" href="https://github.com/TaylorOshan/pysal/blob/spint/pysal/contrib/spint/gravity.py"&gt;gravity&lt;/a&gt; script. The user classes
+accept the appropriate inputs for each of the four types of gravity-based
+spatial interaction model: basic gravity model, production-constrained
+(origin-constrained), attraction-constrained (destination-constrained), and
+doubly constrained. The BaseGravity class does most of the heavy lifting in
+terms of preparing the apprpriate design matrix. For now, BaseGravity inherits
+from CountModel, which is designed to be a flexible generalized linear model
+class that can accommodate several types of count models (i.e., Poisson,
+negative binomial, etc.) and several different types of parameter estimation
+(i.e., iteratively weighted least squares, gradient optimization, etc.). In
+reality, CountModels only currently supports Poisson GLM's (based on a
+customized implementation of statsmodels GLM) and iteratively
+weighted least sqaures estimation, which will be discussed further later in this
+review. In addition, the user may have a continuous
+dependent variable, say trade flows in dollars between countries, and therefore
+might want to use a non-count model, like Gaussian ordianry least sqaures.
+Hence, it may make more sense in the future to move away from the CountModel,
+and just have the BaseGravity class do the necessary dispatching to the
+approriate probability model/estimation techniques.&lt;/p&gt;
+&lt;p&gt;Related blog post(s): post &lt;a class="reference external" href="https://tayloroshan.github.io/api-design.html"&gt;one&lt;/a&gt;; post &lt;a class="reference external" href="https://tayloroshan.github.io/framework.html"&gt;two&lt;/a&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="section" id="sparse-compatibility"&gt;
+&lt;h2&gt;Sparse Compatibility&lt;/h2&gt;
+&lt;p&gt;Because the constrained variety of gravity models (Production, Attraction,
+Doubly) require either N or 2N categorical variables (fixed effects), where N is the number of locations
+that flows may move between, a very large sparse design matrix is necessary for
+any non-trivial dataset. Therefore, a large amunt of effort was put into
+efficiently building the sparse deisgn matrix, specifically the sparse
+categorical variables. After much testing and benchmarking, a function was
+developed that can construct the sparse &lt;a class="reference external" href="https://github.com/TaylorOshan/pysal/blob/spint/pysal/contrib/spint/utils.py"&gt;categorical&lt;/a&gt; variable portion of the
+design matrix relatively quickly. This function is particualr fast if the set of
+locations, N, is index using integers, though it is still efficient if unqiue
+locations are labeled using string identifiers. The sparse design matrix allows
+more efficient model calibration. For example, a spatial system akin to all of
+the counties in US (~3k locations or ~9 million observations), requires less
+than a minute to claibrate a production-constrained model (3k fixed effects) on my notebook about
+two minutes for a doubly-constrained (6k fixed effects) model on my notebook.
+It was decided to use normal array's for the basic Gravity model since it does
+not have fixed effects by defualt, has dense matrices, and therefore becomes
+inefficient as the number of observations grows if sparse matrices are used.&lt;/p&gt;
+&lt;p&gt;Related blog post(s): post &lt;a class="reference external" href="https://tayloroshan.github.io/sparse_glm.html"&gt;three&lt;/a&gt;; post &lt;a class="reference external" href="https://tayloroshan.github.io/more-sparse.html"&gt;four&lt;/a&gt;; post &lt;a class="reference external" href="https://tayloroshan.github.io/sparse_cat_bottleneck.html"&gt;five&lt;/a&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="section" id="testing-and-accounting-for-overdispersion"&gt;
+&lt;h2&gt;Testing and Accounting for Overdispersion&lt;/h2&gt;
+&lt;p&gt;Since the nubmer of pointial origin-destination flow observations grows exponentially as the number of locations
+increases, and because often there are no trips occuring between many locations, spatial interaction datastes can often be overdispersed. That is, there is more variaiton in the data than would expected given the mean of the observations. Therefore, several well known tests for &lt;a class="reference external" href="https://github.com/TaylorOshan/pysal/blob/glm_spint/pysal/contrib/spint/dispersion.py"&gt;overdispersion&lt;/a&gt; (Cameron &amp;amp; Trivedi, 2012) in the context of count (i.e., Poisson) models were implemented. In addition, a &lt;a class="reference external" href="https://github.com/TaylorOshan/pysal/blob/spint/pysal/contrib/glm/family.py#L429"&gt;QuasiPoisson&lt;/a&gt; family was added that can be activated using the Quasi=True parameterization. If it is decided to accomodate more probability models other than Poisson, as previously discussed, then the Quasi flag would be replaced with a family parameter that could be set to Gaussian, Poisson, or QuasiPoisson. The purpose of the QuasiPoisson formulation is to calibrate a Poisson GLM that allows for the variance to be different than the mean, which is a key assuption in the defualt Poisson model.&lt;/p&gt;
+&lt;p&gt;Related blog post(s): post &lt;a class="reference external" href="https://tayloroshan.github.io/testing.html"&gt;six&lt;/a&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="section" id="exploratory-spatial-data-analysis-for-spatial-interaction"&gt;
+&lt;h2&gt;Exploratory Spatial Data Analysis for Spatial Interaction&lt;/h2&gt;
+&lt;p&gt;To explore the spatial clustering nature of raw spatial interaction data an
+implementation of Moran's I spatial autocorrelation statistic for &lt;a class="reference external" href="https://github.com/TaylorOshan/pysal/blob/spint/pysal/contrib/spint/vec_SA.py"&gt;vectors&lt;/a&gt; was
+completed. Then several experiemnts were carried out to test the different
+randomization technqiues that coudl be used for hypothesis testing of the
+computed statistic. This analytic is good for exploring your data before you
+calibrate a model to see if there are spatial associations above and beyond what
+you might expect from otherwise random data. More will be said about the
+potential to expand this statistic at the end of this review in the 'Unexpected
+Discoveries' section.&lt;/p&gt;
+&lt;p&gt;Related blog post(s): post &lt;a class="reference external" href="https://tayloroshan.github.io/esda.html"&gt;seven&lt;/a&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="section" id="investigating-non-stationarity-in-spatial-interaction"&gt;
+&lt;h2&gt;Investigating Non-Stationarity in Spatial Interaction&lt;/h2&gt;
+&lt;p&gt;A method called local()  was added to the Gravity, Production, and Attraction classes that
+allows the models to be calibrated for each of a single location, such that a
+set of parameter estimates and associated diagnostics is acquired for individual
+subsets of data. These results can then be mapped, either using python or other
+conventional GIS software, in order to explore how relationships change over
+space.&lt;/p&gt;
+&lt;p&gt;Related blog post(s): post &lt;a class="reference external" href="https://tayloroshan.github.io/esda.html"&gt;seven&lt;/a&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="section" id="spatial-weights-for-spatial-interation"&gt;
+&lt;h2&gt;Spatial Weights for Spatial Interation&lt;/h2&gt;
+&lt;p&gt;In order to carry out the vector-based spatial autocorrelation statistics, as
+well as various types of spatial autoregressive model specifications, it is
+necessary to define spatial associations between flows using a spatial weight
+matrix. To this end, three types of spatial weights were implemented, which can
+be found in the &lt;a class="reference external" href="https://github.com/TaylorOshan/pysal/blob/spint/pysal/weights/spintW.py"&gt;spintW&lt;/a&gt; script in the weights mpodule. The first is a
+origin-destination contiguity-based weight that encodes two flows as a neighbor
+is they share either an origin or a destination. The second weight is based on a
+4-dimensional distance (origin x, origin y, destination x, destination y) where
+the strength of the association decays with further distances. Finally,
+network-based weights that use different types of adjacency of flows represented
+as an abstract or physical network.&lt;/p&gt;
+&lt;p&gt;As part of this work I also had the opportuity to contirbute some speed-ups to
+the DistanceBand class in the Distance script of the weights module so that it
+avoided a slow loop and could leverage both dense and sparse matrices. In the
+case of the 4-dimensional diistance-based spatial weight, the resulting spatial
+weight is not sparse and so the exisiting code could become quite slow. Now it
+is possible to set the boolean parameter build_sp=False, which will be more
+effiient when the distance-weighted entries of the weight matrix are
+increasingly non-zero.&lt;/p&gt;
+&lt;p&gt;Related blog post(s): post &lt;a class="reference external" href="https://tayloroshan.github.io/weights.html"&gt;eight&lt;/a&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="section" id="accounting-for-spatial-association-in-spatial-interaction-models"&gt;
+&lt;h2&gt;Accounting for Spatial Association in Spatial Interaction Models&lt;/h2&gt;
+&lt;p&gt;It has recently been proposed that due to spatial autocorrelation in spatial
+interaction data it is necessary to account for the spatial association,
+otherwsie the estimated parameters could be biased. The solution was a variaiton
+of the classic spatial autoregressive (i.e., spatia lag) model for flows, which could
+estimate an additional parameter to capture spatial autocorrelation in the
+origins, in the destinations and/or in a combination of the origins and
+destinations (LeSage and Pace, 2008). Unfortunately, no code was released to
+support this mode specification, so I attempted to implement this new model. I
+was not able to completely replicate the model, but I was able to &lt;a class="reference external" href="https://github.com/TaylorOshan/pysal/blob/spint/pysal/contrib/spint/notebooks/Gaussian_SAR.ipynb"&gt;extend&lt;/a&gt; the
+existing pysal ML_Lag model to estimate all three autocorrelation parameters,
+rather than just one. I have also attemped to re-derive the appropriate
+variance-covariance matrix, though this will take some more work before it is
+completed. More on this in the 'Moving Forward' section found below.&lt;/p&gt;
+&lt;p&gt;Related blog post(s): post &lt;a class="reference external" href="https://tayloroshan.github.io/sar.html"&gt;nine&lt;/a&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="section" id="assessing-model-fit-for-spatial-interaction-models"&gt;
+&lt;h2&gt;Assessing Model Fit for Spatial Interaction Models&lt;/h2&gt;
+&lt;p&gt;Several metrics were added for assessing model fit. These include McFadden's
+pseudo r-squared (based on likelihood ratios), the adjusted McFadden's pseduo
+r-squared ro account for model complexity, D-squared or percent deviance (based
+on deviance ratio) and its adjusted counterpart, the standardized root mean
+square error (SRMSE), and the Sorenseon similarity index (SSI). The D-squared
+statistics and the pseudo r-squared statistics are properties of the GLM class,
+while the SRMSE and SSI metrics have been added as properties of the BaseGravity
+class. However, the functions to compute the SSI and SRMSE are stored in the
+&lt;a class="reference external" href="https://github.com/TaylorOshan/pysal/blob/spint/pysal/contrib/spint/utils.py"&gt;utils&lt;/a&gt; script since they may also be useful for detemrinistic non-gravity type
+models that could be implemented in the future.&lt;/p&gt;
+&lt;p&gt;Related blog post(s): post &lt;a class="reference external" href="https://tayloroshan.github.io/fits.html"&gt;ten&lt;/a&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="section" id="unexpected-discoveries"&gt;
+&lt;h2&gt;Unexpected Discoveries&lt;/h2&gt;
+&lt;p&gt;While implementing the vector-based spatial autcorrelation statistic, it was
+noticed that one of the randomization technqiues is not exactly random,
+depending on the hypothesis that one would like to test. In effect, when you
+produce many permutations and compare your test statistic to a distriubution of
+values, you would find that you are always rejecting your statistic. Therefore,
+there is additional work to be done here to further define different possible
+hypothesis and the appropriate randomization techniques.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class="section" id="leftovers-and-moving-forward"&gt;
+&lt;h2&gt;Leftovers and Moving Forward&lt;/h2&gt;
+&lt;p&gt;Future work will consist of completing the spatial interaction SAR model
+specification. It will also include adding in gradient-based optimization of
+likelihood functions, rather than solely iteratively weighted least squares.
+This will allow the implementation of other model extensions such as the
+zero-inflated Poisson model. I was not able to implement these features because
+I was running short on time and decided to work on the SAR model, which turned
+out to be more complicated than I originally expected. Finally, future works
+will also incorporate determinsitic models, spatial effects such as competing
+destinations and eigenvector spatial filters, and neural network spatial
+interaction models.&lt;/p&gt;
+&lt;/div&gt;
+</description><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Taylor Oshan</dc:creator><pubDate>Tue, 16 Aug 2016 10:13:00 -0700</pubDate><guid isPermaLink="false">tag:,2016-08-16:wrap_up.html</guid></item><item><title>Assessing Model Fit in Spatial Interaction Models</title><link>/fits.html</link><description>&lt;p&gt;One issue with spatial interaction models is how to compare the fit of different
+models. This can be especially tricky in the realm of generalized linear models,
+where the R-squared value does not have the same interpretation as in an OLS
+regression. Even in the context of OLS regression, previous &lt;a class="reference external" href="http://irx.sagepub.com/content/10/2/127.abstract"&gt;work&lt;/a&gt; suggests the
+best way to assess a set of models is via a combination of r-squared,
+standardized root mean sqaure error (SRMSE), and information-based statistics.
+In the vein, we I have added the SRMSE to the gravity classes. I have also added
+several proxies to the R-squared value, since we cannot use the standard
+R-sqaure. Frist, I added a pseudo R-squared (McFadden's variety), which is
+based on a camparison of a model's full likelihood to its null likelihood. In
+addition, there is also an adjusted version, which penalizes the measure for
+model complexity, which has been added to the gravity classes as well. I have
+also added a D-squared metric, which may be interpretted as the percentage of
+deviation accounted for by the model. It is essentially a ratio of the model
+deviance to the null deviance. This measure also has an adjusted version to
+account for model complexity. The D-squared metric was added to the GLM class,
+which is also passed to the gravity class. Finally, the Sorensen similarity
+index (SSI) was added to the gravity class. This index has become popular in the
+mobility and network science literature so it was added so that it can be used
+for comparing models but also against other metrics.&lt;/p&gt;
+</description><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Taylor Oshan</dc:creator><pubDate>Fri, 12 Aug 2016 07:17:00 -0700</pubDate><guid isPermaLink="false">tag:,2016-08-12:fits.html</guid><category>GSOC</category></item><item><title>Flow Associations and Spatial Autoregressive models</title><link>/sar.html</link><description>&lt;p&gt;In the last few weeks I had the opportunity to attend the 2016 Scipy conference
+with several of my mentors and contributors to the PySAL project. In this time I
+also completed the the three types of spatial weights for flows: network-based
+weights, proximity based weights using contiguity of both origins and
+destinations, and lastly, distance based weights using a 4-dimensiona ldistance
+(origin x, origin y, destination x, destination y). These three types of weights
+can be used within the vector-based Moran's that was coded in previous weeks to
+explore spatial autocorrelation, as well as within a spatial autoregressive
+(lag) model. In the process of building the distance-based weights, I was also
+able to contribute some speed-ups to the general DistancBand class, which have
+been incorporated into the library. Specificially, the DistanceBand class now
+avoids looping during construction, and there is a build_sp boolean parameter
+that when set to false will provide speed-ups if ones is using a relatively
+large threshold (or no threshold) such that the distance matrix is more dense
+than sparse.&lt;/p&gt;
+&lt;p&gt;More recently, work has been focusing on developing a version of the spatial lag
+model where there is a spatial lag for the origins, destination and
+origins-destinations spatial relationships. It looks like it will be possible to
+extend the exisitng ml_lag.py script to estimate parameters, though the proper
+covariance matrix will be more involved. During last weeks meeting, my mentors
+and I discussed several apporaches to developing code to carry out the
+estimation of the covariance matrix, which is what I will continue to work on
+before pivoting to the final phase of the project where I will clean up the code
+and finish documentation.&lt;/p&gt;
+</description><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Taylor Oshan</dc:creator><pubDate>Fri, 29 Jul 2016 08:26:00 -0700</pubDate><guid isPermaLink="false">tag:,2016-07-29:sar.html</guid><category>GSOC</category></item><item><title>Spatial weights for flow data</title><link>/weights.html</link><description>&lt;p&gt;This week work on spatial weights for flow data began. So far it has resulted in
+three new functions. The first two functions refer to two different types of the
+weights while the third is a helper function.&lt;/p&gt;
+&lt;p&gt;The two types of weights are origin-destination spatial contiguity weights which
+denote two flows to be neighbors if their origins or their destinations are
+spatially contiguous. The &lt;a class="reference external" href="https://gist.github.com/TaylorOshan/ca2bdee790620d4d1983991a01620555"&gt;first&lt;/a&gt; type of weight is created by the function ODW() takes as input an O X O W object denoting
+origin spatial contiguity and a D x D W object denoting destination contiguity and
+then returns the  O*D x O*D origin-destination W object where O = # of origins and D = # of destinations. The &lt;a class="reference external" href="https://gist.github.com/TaylorOshan/51e320a9c5db0a8b564458c07af8f4cb"&gt;second&lt;/a&gt; weight, network-based weights, interprets
+assocations among flows to mean that they share nodes an abstract network
+representation of the flow system. To this end, two flows may be neighbors is
+they share any single node, if they share an origin node, if they share a
+destination node, or if they share an origin or a destination node. Each
+scenario produces somewhat different spatial weights capturing slightly
+different notions of associations. This function, netW(), takes as input a list
+of tuples, (origin,destination) that represent the edges of a network, as well
+as a parameter to denote which type of nodal association to use, and returns an
+O*D x O*D W object.&lt;/p&gt;
+&lt;p&gt;Finally, the third function was designed to convert a matrix or array that
+denotes flows or network edges into a list of tuples to be used as input to the
+netW() function described above.&lt;/p&gt;
+&lt;p&gt;Still to come is a distance-based weight that uses all four dimenions avialalbe
+when comparing two flows (origin 1, destination 1, origin 2, destination 2).&lt;/p&gt;
+</description><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Taylor Oshan</dc:creator><pubDate>Fri, 08 Jul 2016 14:23:00 -0700</pubDate><guid isPermaLink="false">tag:,2016-07-08:weights.html</guid><category>GSOC</category></item><item><title>Exploratory data analysis for spatial interaction</title><link>/esda.html</link><description>&lt;p&gt;Over the past two weeks I have worked on some exploratory tools for spatial
+interaction data. First, I have coded up a recently proposed spatial
+autocorrelation statistic for vectors. The statistic itself is a variation of
+Moran's I, though it requires unique randomization technqiues to carry out
+significance testing because the udnerlying distribution of vectors is unknown.
+The original paper put forth two randomization techniques, which I have tested
+&lt;a class="reference external" href="https://gist.github.com/TaylorOshan/bd4b050ac93cc89a44c636842794f942"&gt;here&lt;/a&gt; and which give very different results. More work will need to be done here
+to decide the best way to carry out hypothesis testing of the vector Moran's I.&lt;/p&gt;
+&lt;p&gt;I also created helper functions for the Gravity, Production, and Attraction
+classes, which carry out origin/destination specific gravity models so that
+local statistics and parameters can be obtained and mapped to explore potential
+non-stationarity in data-generating processes. In each case, the helper function
+is called local, thugh it &lt;a class="reference external" href="https://gist.github.com/TaylorOshan/79aa3f71c573d8d7cac33463bb7efa9b"&gt;works&lt;/a&gt; a bit differently for Gravity models, which
+can be origin-specific or destination-specific in comparion to constrained
+models which can only be either origin-specific or destination-specific. If a
+user tries to use the local function with a doubly-constrained model then they
+get a not implemented error since it is not possible to compute
+location-specific doubly constrained models due to a lack of degrees of freedom.&lt;/p&gt;
+&lt;p&gt;Looking forward, the next to weeks will focus on building functions to produce
+weighting functions that consider the spatial proximity of both origin and
+destintion neighbors, which will be useful or exploratory analysis and also for
+specifying autoregressive/spatial filter models.&lt;/p&gt;
+</description><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Taylor Oshan</dc:creator><pubDate>Fri, 01 Jul 2016 19:08:00 -0700</pubDate><guid isPermaLink="false">tag:,2016-07-01:esda.html</guid><category>GSOC</category></item><item><title>Testing...one...two...</title><link>/testing.html</link><description>&lt;p&gt;In the last week or so I have refined existing unit tests and added new ones to extend
+coverage to all of the user classes (Gravity, Production, Attraction, and Doubly) as well as to the BaseGravity class. Instead of testing every user class for every possible parameterization, the baseGravity class is tested over different parameterizations such that the tests for the user classes primarily focus on testing the building of dummy variables for the respective model formulations. In contrast, the BaseGravity class tests different cost functions (power or exponential) and will also be used for different variations that occur across the user classes. Unit tests were also added for the CountModel class, which serves as a dispatcher between the gravity models and more specific linear models/estimation routines. Finally, unit tests were added for the GLM class which is currently being used for all estimation on all existing spatial interaction mdoels within SpInt. This will be expected to change when gradient-based optimization is used for estimation of zero-inflated models in a MLE framework instead of the IWLS estimation currently used in he GLM framework.&lt;/p&gt;
+&lt;p&gt;In addition to unit tests code was also completed for handling overdispersion.
+First, several &lt;a class="reference external" href="https://github.com/TaylorOshan/pysal/blob/glm_spint/pysal/contrib/spint/dispersion.py"&gt;tests&lt;/a&gt; were added for testing the hypothesis of overdispersion
+within a Poisson model. Second, the QuasiPoisson family was added to the GLM
+framework. This is essentially the same as the Poisson family, a scale
+parameter, phi, (also known as the dispersion parameter) is estimated using a
+chi-squared statistic approximation and used to correct the covariance, standard
+errors, etc. to be less conservative in the face of overdisperison.
+QuasiPoisson capabilities were then added to the gravity model user classes as a
+boolean flag that defaults to false so one can easily adopt a quasi-MLE poisson
+modleing approach if they use the dispersion tests and conclude there is
+significant overdispersion. It was decided to push the development of the
+zero-inflated poisson model until the end of the summer of code schedule, which
+is also where graident-based optimization now resides. This makes sense, since
+these go hand-in-hand.&lt;/p&gt;
+&lt;p&gt;Next up on the agenda is an explortory data analysis technique to test for
+spatial autocorrelation in vectors and a helper function to calibrate
+origin/destinaton specific models so that the results can be mapped to explore
+possible non-stationarities.&lt;/p&gt;
+</description><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Taylor Oshan</dc:creator><pubDate>Wed, 22 Jun 2016 08:44:00 -0700</pubDate><guid isPermaLink="false">tag:,2016-06-22:testing.html</guid><category>GSOC</category></item><item><title>Sparse Categorical Variables Bottleneck</title><link>/sparse_cat_bottleneck.html</link><description>&lt;p&gt;This post is a note about the function I wrote to create a sparse matrix of
+categorical variables to add fixed effects to constrained variants of spatial
+interaction models. The current function is quite fast, but may be able to be
+improved upon. This &lt;a class="reference external" href="https://gist.github.com/TaylorOshan/ad43047fd242ad81fa9e184e553b0f7f"&gt;link&lt;/a&gt; contains a gist to a notebook that explains the
+current function code, along with some ideas about how it might become faster.&lt;/p&gt;
+</description><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Taylor Oshan</dc:creator><pubDate>Tue, 21 Jun 2016 09:06:00 -0700</pubDate><guid isPermaLink="false">tag:,2016-06-21:sparse_cat_bottleneck.html</guid><category>GSOC</category></item><item><title>Further tests with sparse data structure for spatial interaction models</title><link>/more-sparse.html</link><description>&lt;p&gt;This week the effort to build sparse compatibility for spatial interaciton
+models was continued. Rather than write tests, and then change the code and need
+to re-write tests, it was decided to finalize the framework and then follow up
+with the tests. One of the main bottlenecks for spatial interaction models are
+the huge number of dummy variables used by the constrained variants. Therefore,
+after conferring with my mentores more effort was put into exloring functions to
+generate sparse dummy variables, some of which can be seen &lt;a class="reference external" href="https://gist.github.com/TaylorOshan/7845a68dcb10bfeb5319e851c2495c22"&gt;here&lt;/a&gt;. Thus far it
+has been a sucess, as the ability to produce the diesign matrix with the
+approriate dummy variables for a model using ~3000 locations (like the us
+counties), which implies 9 million OD flows now takes minutes to estimate rather
+than an hour+.&lt;/p&gt;
+&lt;p&gt;Once the sparse implementation was complete, some &lt;a class="reference external" href="https://gist.github.com/TaylorOshan/042c26197b7daeb5d6b47ed025e3d460"&gt;tests&lt;/a&gt; were run to compare the
+sparse and dense framework speeds. Obviously, in the constrained variants,
+sparse always wins hands down, but for the unconstrained model, dense matrices
+are actually faster. Therefore, it was decided that the codebase will adapt
+according to which model is being estimated. Finally, the branches containing the desne
+and sparse implementation were merged into the &lt;a class="reference external" href="https://github.com/TaylorOshan/pysal/tree/glm_spint"&gt;glm_spint&lt;/a&gt; branch, which is the
+main working feature branch for this GSOC project. Unfortuantely, the end of the
+week was spent resolving some bugs that resulted from the merging of the sparse
+and dense frameworks, and I was unable to finish developing unittests for the
+general spint framework. This will be the first task next week before adding
+features to extend the framework to handle over-dispersed and zero-inflated
+data.&lt;/p&gt;
+</description><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Taylor Oshan</dc:creator><pubDate>Fri, 10 Jun 2016 16:30:00 -0700</pubDate><guid isPermaLink="false">tag:,2016-06-10:more-sparse.html</guid><category>GSOC</category></item><item><title>Generalized Linear Models and Sparse Design Matrices</title><link>/sparse_glm.html</link><description>&lt;p&gt;This week was primarily focused on exploring different options for estimating generalized linear models (GLM). First, I built an option into the gravity model class that would use exisitng GLM code through the statmodels project. Next, I put together my own code to carry out iteratively weighted least squares estimation for GLM's. Of immediate interest was a comparison of the speed of the code-bases for carrying out the estimation of a GLM. Each technique was used to calibrate each model variety (unconstrained, production-constrainedm atttraction-constrainem, and doubly constrained) when the number of origin-destination pairs (sample size) was N = 50, 100, 150, and 200. Some quick results can be see here in this &lt;a class="reference external" href="https://gist.github.com/TaylorOshan/ccac7e5489b5b2b1799bf79ef001d922"&gt;gist&lt;/a&gt;. Expectedly, the results show that for either technique the unconstrained models are the fastest to calibrate (no fixed effects), followed the by the singly-constrained models (N fixed effects), and finally, the doubly-constrained models take the longest (N*2 fixed effects). The more fixed effects in the model, the larger the deisgn matrix, X, and the longer the estimation routines will take. More surprisingly, the custom GLM (from now on just GLM) was way faster than the statsmodels GLM (from now on SMGLM). The statsmodels uses either the pseudoinverse or a QR decomposiiton to compute the least sqaures estimator, which would have been thought to be way quicker than the direct computations used in my code. For now, I have only tested the pseudo-indverse SMGLM, as the flag to switch to QR decomposition is not actually available to the SMGLM api (on to the weight least sqaures class at a lower level of abstraction). Perhaps, the SMGLM takes longer to compute because it has a fuller suite of diagnostics or perhaps the psuedo-inverse is not as quick when there is a sparse design matrix (i.e., many fixed effects).&lt;/p&gt;
+&lt;p&gt;After some additional exploring, I found that there was an upper limit to the
+number of locations (N = locations**2) that could considered for the
+singly-constrained or doubly-constrained models given the high number of fixed
+effects. Somewhere between 1000 and 2000 locations, my notebook would run out of
+memory. To cirvument this, I next developed a version of the custom GLM code
+that was compatible with the sparse data strcutres from the Scipy library, which
+cna be found in this &lt;a class="reference external" href="https://github.com/TaylorOshan/pysal/tree/sparse_glm_spint/pysal/contrib/spint"&gt;branch&lt;/a&gt;. This required a custom version of the
+categorical() function from statsmodels (exampe &lt;a class="reference external" href="https://gist.github.com/TaylorOshan/45cd01bb08e23280549aee770a05cdfe"&gt;here&lt;/a&gt;) to create the dummy variables needed for constrained spatial interaction models and then altering the least squares computations to make sure that no large dense arrays were being created throughout the routine. Specifically, it was necessary to change the order in which some of the operations were carried out to avoid the creations of large dense arrays. Now it is possible to calibrate constrained spatial interaction models using GLM's for larger N. The most demanding model estimation I have &lt;a class="reference external" href="https://gist.github.com/TaylorOshan/42d90dbf219b50f3b0d54e06ba4e8b5b"&gt;tested&lt;/a&gt; was a doubly-constrained model with 5000 locations, which implies N=25,000,000 and a design matrix with the dimensions of (25,000,000, 10001). Looking forward, I will further test this sparse GLM framework to see if there
+are any losses assocaited with it when N is small to moderate.&lt;/p&gt;
+&lt;p&gt;This week I also explored gradient optimization packages that coyld be used in
+lieu of a GLM framework. So far the options seem to be between autograd/scipy or
+Theano. I was able to create a working &lt;a class="reference external" href="https://gist.github.com/TaylorOshan/13c3b4a1d9489e03ea70ee52ecb0b61d"&gt;example&lt;/a&gt; in autograd/scipy, though this
+has not been developed any further yet and will likely be pushed off until later
+in the project. For now, the focus will remain on using GLM's for estimation.&lt;/p&gt;
+&lt;p&gt;Next week I will begin to look at diagnostics for count models, zand
+alternatives when we have overdispersed/zero-inflated dependent variables.&lt;/p&gt;
+</description><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Taylor Oshan</dc:creator><pubDate>Fri, 03 Jun 2016 16:12:00 -0700</pubDate><guid isPermaLink="false">tag:,2016-06-03:sparse_glm.html</guid><category>GSOC</category></item><item><title>SpInt Framework</title><link>/framework.html</link><description>&lt;p&gt;Given the API deisgn discussed in the previous post, the initial few days of
+coding were used to build the general framework and core classes that will be
+used in SpInt. Since the gravity-type models make up the majority of existig
+model specifications, the initial focus for developing the general framework
+essentially means focusing on developing classes for gravity models.&lt;/p&gt;
+&lt;p&gt;It was decided to split the four primary model specfications (unconstrained or
+traditional gravity model, production-constrained, attraction-constrained,
+doubly-constrained) into four separate &amp;quot;user&amp;quot; style classes (see pysal.spreg
+module) that inherit from one base class (BaseGravity). These user classes
+serve to accept structured array inputs and configurations from the user and
+then carry out model-specific checks of the data. Then they pass the inputs into
+an __init__ method for BaseGravity. Depending on which inputs are passed and the
+type of user class that __init__ is called from, BaseGravity then further checks the
+data and preapres it into an endogenous dependent variable, y, and and a
+set of exogenous explanatory variables, X. Finally, BaseGravity then calls an
+__init__ method to the class that it inherits from, CountModel, with these newly
+formatted inputs and any estimation options, and a fit() method. The init_method
+carries out a simple check to make sure the dependent variable, y, is indeed a
+count-based variable and the fit method carries out the selected estimation
+routine. Currently the default estimatation framework/method is MLE using the generalized linear model (GLM)/iteratively re-weighted least squares (IWLS) in statmodels,
+though others can be added such as GLM/gradient search or non-linear
+formulations/gradient search.&lt;/p&gt;
+&lt;p&gt;The design was carried out in this manner (CountModel --&amp;gt; BaseGravity --&amp;gt;
+Gravity/Production/Attraction/Doubly) in order to promote flexibility and modularity.
+For example, CountModel can be expanded by adding tests for overdisperison,
+additional estimation routines and count-based probability models other than
+Poisson (i.e., negative binomial), which can be useful throughout pysal for other count-based
+modeling tasks. This also means that SpInt is not a priori limited to any single
+type of estimation technique or probability model in the future. Then the BaseGravity
+class does the heavy lifting in terms of data munging and common data integrtiy
+checks. And finally, the user classes aim to restrcit input for specific types
+of gravity models, carry out model-specific checks, and then to organize and
+prepare the model results for the user.&lt;/p&gt;
+&lt;p&gt;This code and an exmple of its use in an ipython notebook can be found &lt;a class="reference external" href="https://github.com/TaylorOshan/pysal/blob/glm_spint/pysal/contrib/spint"&gt;here&lt;/a&gt;. At
+the moment estimation can only be carried out using a GLM/IWLS in statmodels and
+only basic results are available, though a more user-friendly presentation of
+the results will be created, such as the results.summary() method in
+statsmodels.&lt;/p&gt;
+&lt;p&gt;Looking forward, this framework will be filled out with the additons already
+described as well potentially adding a mechanism that allows users to flexibly
+use different input formats. Currently, input consists of all arrays, but it
+would be helpful to allow users to pass in a pandas DataFrames and the names of the columns that refer to different arrays. I will also begin
+to explore sparse data structures/algebra and when they will be the most
+beneficial to employ.&lt;/p&gt;
+</description><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Taylor Oshan</dc:creator><pubDate>Fri, 27 May 2016 08:45:00 -0700</pubDate><guid isPermaLink="false">tag:,2016-05-27:framework.html</guid><category>GSOC</category></item><item><title>Initial GSOC meeting - API Design</title><link>/api-design.html</link><description>&lt;p&gt;During the community bonding period of the GSOC program I have been thinking
+largely about the design of the API for SpInt.&lt;/p&gt;
+&lt;p&gt;First, the API would need to accommodate a basic gravity model and then also support
+extensions that include SAR terms, a spatial filter term, or a competing
+destinations term. Typically the competing destinations term is nothing more
+than a sum of distance weighted attributes, which should be simple. I think it
+shouldn't be too hard use the existing pysal spatial weights module as a base to
+create a function to create OD-based SAR spatial weights. And there is some code
+available for computing spatial filters in &lt;a class="reference external" href="https://github.com/bchastain/esf"&gt;python&lt;/a&gt;. So I think in order to accommodate the three
+extensions it might be simplest to have the user first compute these and then
+pass them in  as optional arguments to the basic gravity model. In the case of
+the competing destinations or spatial filter model, there is no new estimator
+required and so its as easy as including the extra variable (within an OLS or
+Poisson regression framework). If the optional SAR term is passed in, then under
+the hood a new estimator could be used rather than the default OLS or  Poisson
+estimator. I imagine the basic call could look something like&lt;/p&gt;
+&lt;p&gt;spint.gravity(required_arguments, cd=None, sf=None, w=None)&lt;/p&gt;
+&lt;p&gt;where cd would be an optional competing destinations variable, sf the optional
+spatial filter term, and w would be optional spatial weight, each of which would
+be pre-computed using code from the weights module or other utility functions.&lt;/p&gt;
+&lt;p&gt;The other alternative could be to have separate calls for each extension where
+the corresponding optional term now becomes required:&lt;/p&gt;
+&lt;p&gt;spint.gravity(required_arguments)
+spint.gravity.cd(required_arguments)
+spint.gravity.sf(required_arguments)
+spint.gravity.lag(required_arguments)&lt;/p&gt;
+&lt;p&gt;I am inclined to think the former is simpler, esepcially if one would like to
+combine models.&lt;/p&gt;
+&lt;p&gt;Another layer to the API would be each &amp;quot;member&amp;quot; to the Wilson-type &amp;quot;family&amp;quot; of
+models: unconstrained or basic gravity model, production or origin constrained,
+attraction or destination constrained, and doubly constrained. This is achieved
+technically by adding in either balancing factors or fixed effects during
+estimation, depending on the estimation technique. Then building from the first
+two examples the API could look like either:&lt;/p&gt;
+&lt;ol class="arabic simple"&gt;
+&lt;li&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;spint.gravity.unconstrained(required_arguments, cd=None, sf=None, w=None)&lt;/p&gt;
+&lt;p&gt;spint.gravity.production(required_arguments, cd=None, sf=None, w=None)&lt;/p&gt;
+&lt;p&gt;spint.gravity.attraction(required_arguments, cd=None, sf=None, w=None)&lt;/p&gt;
+&lt;p&gt;spint.gravity.doubly(required_arguments, cd=None, sf=None, w=None)&lt;/p&gt;
+&lt;ol class="arabic simple" start="2"&gt;
+&lt;li&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;spint.gravity(required_arguments, constraint=none)&lt;/p&gt;
+&lt;p&gt;spint.gravity.cd(required_arguments, constraint=none)&lt;/p&gt;
+&lt;p&gt;spint.gravity.sf(required_arguments, constraint=none)&lt;/p&gt;
+&lt;p&gt;spint.gravity.lag(required_arguments, constraint=none)&lt;/p&gt;
+&lt;p&gt;I think that option (1) may be more intuitive because the
+doubly-constrained model is unique in that it requires a squared OD matrix (all
+origins are also destinations) and so it might be natural since each of the four
+varieties may have different input properties that need to be checked.&lt;/p&gt;
+&lt;p&gt;In terms of model fitting techniques, I think it would be neat to use something
+similar to stats models like:&lt;/p&gt;
+&lt;p&gt;model = spint.gravity.unconstrained(required_arguments, cd=None, sf=None,
+w=None)&lt;/p&gt;
+&lt;p&gt;results = model.fit(fit_arguments)&lt;/p&gt;
+&lt;p&gt;which would be natural if everything is being built onto of a GLM framework. The
+reasoning behind using a GLM framework was to be able take advantage of
+additional count models such as negative binomial relatively easily.
+&amp;quot;fit_arguments&amp;quot; could include the type of probability model (gaussian, poisson,
+negative binomial, etc.), and the fit technique (iteratively re-weighted least
+squares or Theano/Autograd MLE). It could then be possible to build a higher
+level of abstraction on top of this that more closely matches the base/user
+class organization used in the spreg module within pysal.&lt;/p&gt;
+&lt;p&gt;Aside from gravity models, there are other spatial interaction models, but that I sort of think of as separate
+from those described above because they are non-parametric methods, which are either
+deterministic &amp;quot;universal&amp;quot; models that mostly come out of the human mobility
+literature or use a neural network approach. I think it would
+make sense to accommodate non-parametric  models so that they are separate from
+gravity models. For example:&lt;/p&gt;
+&lt;p&gt;spint.mobility.radiaton()&lt;/p&gt;
+&lt;p&gt;spint.mobility.inv_pop_weighted()&lt;/p&gt;
+&lt;p&gt;spint.neural()&lt;/p&gt;
+&lt;p&gt;To summarize, the API needs to accomodate the &amp;quot;family&amp;quot; of spatial interaction
+model varieties (unconstrained, production-constrained, attraction-constrained,
+doubly-constrained), where each of these varieties can then have several
+extensions to include a competing destinationas terms, a spatial filtering term,
+or a SAR term. The API also needs to acommodate non-parametric methods such as
+dterminstic models and neural network based models. Framework (1) from above
+will be adopted first as the main API.&lt;/p&gt;
+&lt;p&gt;During the first GSOC meeting with my mentors we decided it would be best to
+first get as many model variations working as possible. Then we could tweak the
+API accoridngly and focus on optimizing the computational speed. We've also set
+up a Trello board so that we can collaborate on assigning/managing tasks for the
+project.&lt;/p&gt;
+&lt;p&gt;Finally, I have started a wiki &lt;a class="reference external" href="https://github.com/pysal/pysal/wiki/SpInt-Development"&gt;page&lt;/a&gt; on the pysal group on Github where it will
+be possible to discuss model specifications and their related literature, such
+as the Poisson SAR lag model.&lt;/p&gt;
+</description><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Taylor Oshan</dc:creator><pubDate>Fri, 20 May 2016 11:23:00 -0700</pubDate><guid isPermaLink="false">tag:,2016-05-20:api-design.html</guid><category>GSOC</category></item><item><title>Hello World</title><link>/hello-world.html</link><description>&lt;p&gt;Hello, world! This blog will be used to document the implementation of a spatial
+interaction (SpInt) modeling toolkit as part of the Python Spatial Analysis
+Library (PySAL)  project, hopefully with assistance from Google through the Google
+Summer of Code Program. Stay tuned!&lt;/p&gt;
+</description><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Taylor Oshan</dc:creator><pubDate>Mon, 21 Mar 2016 22:01:00 -0700</pubDate><guid isPermaLink="false">tag:,2016-03-21:hello-world.html</guid><category>GSOC</category></item></channel></rss>

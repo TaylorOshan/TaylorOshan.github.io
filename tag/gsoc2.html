@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+        <title>Building SpInt - GSOC</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/theme/css/main.css" type="text/css" />
+        <link href="/" type="application/atom+xml" rel="alternate" title="Building SpInt ATOM Feed" />
+
+
+        <!--[if IE]>
+                <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+        <!--[if lte IE 7]>
+                <link rel="stylesheet" type="text/css" media="all" href="/css/ie.css"/>
+                <script src="/js/IE8.js" type="text/javascript"></script><![endif]-->
+
+        <!--[if lt IE 7]>
+                <link rel="stylesheet" type="text/css" media="all" href="/css/ie6.css"/><![endif]-->
+
+</head>
+
+<body id="index" class="home">
+        <header id="banner" class="body">
+                <h1><a href="/index.html">Building SpInt </a></h1>
+                <nav><ul>
+                <li><a href="/">Archives</a></li>
+                </ul></nav>
+        </header><!-- /#banner -->
+
+     <section id="content" class="body">
+        <aside id="featured"><article>
+                <h1 class="entry-title"><a href="/fits.html">Assessing Model Fit in Spatial Interaction Models</a></h1>
+<footer class="post-info">
+        <abbr class="published" title="2016-08-12T07:17:00-07:00">
+                Fri 12 August 2016
+        </abbr>
+
+        <address class="vcard author">
+                By <a class="url fn" href="/author/taylor-oshan.html">Taylor Oshan</a>
+        </address>
+<p>In <a href="/category/misc.html">misc</a>. </p>
+<p>tags: <a href="/tag/gsoc.html">GSOC</a></p></p></footer><!-- /.post-info --><!-- /.post-info -->
+                <p>One issue with spatial interaction models is how to compare the fit of different
+models. This can be especially tricky in the realm of generalized linear models,
+where the R-squared value does not have the same interpretation as in an OLS
+regression. Even in the context of OLS regression, previous <a class="reference external" href="http://irx.sagepub.com/content/10/2/127.abstract">work</a> suggests the
+best way to assess a set of models is via a combination of r-squared,
+standardized root mean sqaure error (SRMSE), and information-based statistics.
+In the vein, we I have added the SRMSE to the gravity classes. I have also added
+several proxies to the R-squared value, since we cannot use the standard
+R-sqaure. Frist, I added a pseudo R-squared (McFadden's variety), which is
+based on a camparison of a model's full likelihood to its null likelihood. In
+addition, there is also an adjusted version, which penalizes the measure for
+model complexity, which has been added to the gravity classes as well. I have
+also added a D-squared metric, which may be interpretted as the percentage of
+deviation accounted for by the model. It is essentially a ratio of the model
+deviance to the null deviance. This measure also has an adjusted version to
+account for model complexity. The D-squared metric was added to the GLM class,
+which is also passed to the gravity class. Finally, the Sorensen similarity
+index (SSI) was added to the gravity class. This index has become popular in the
+mobility and network science literature so it was added so that it can be used
+for comparing models but also against other metrics.</p>
+
+        </article></aside><!-- /#featured -->
+                <h1>Other articles</h1>
+                <hr />
+                    <ol id="posts-list" class="hfeed">
+        <li><article class="hentry">
+                <header>
+                        <h1><a href="/sar.html" rel="bookmark" title="Permalink to Flow Associations and Spatial Autoregressive models">Flow Associations and Spatial Autoregressive models</a></h1>
+                </header>
+
+                <div class="entry-content">
+<footer class="post-info">
+        <abbr class="published" title="2016-07-29T08:26:00-07:00">
+                Fri 29 July 2016
+        </abbr>
+
+        <address class="vcard author">
+                By <a class="url fn" href="/author/taylor-oshan.html">Taylor Oshan</a>
+        </address>
+<p>In <a href="/category/misc.html">misc</a>. </p>
+<p>tags: <a href="/tag/gsoc.html">GSOC</a></p></p></footer><!-- /.post-info --><!-- /.post-info -->
+                
+                <a class="readmore" href="/sar.html">read more</a>
+                </div><!-- /.entry-content -->
+        </article></li>
+        <li><article class="hentry">
+                <header>
+                        <h1><a href="/weights.html" rel="bookmark" title="Permalink to Spatial weights for flow data">Spatial weights for flow data</a></h1>
+                </header>
+
+                <div class="entry-content">
+<footer class="post-info">
+        <abbr class="published" title="2016-07-08T14:23:00-07:00">
+                Fri 08 July 2016
+        </abbr>
+
+        <address class="vcard author">
+                By <a class="url fn" href="/author/taylor-oshan.html">Taylor Oshan</a>
+        </address>
+<p>In <a href="/category/misc.html">misc</a>. </p>
+<p>tags: <a href="/tag/gsoc.html">GSOC</a></p></p></footer><!-- /.post-info --><!-- /.post-info -->
+                
+                <a class="readmore" href="/weights.html">read more</a>
+                </div><!-- /.entry-content -->
+        </article></li>
+        <li><article class="hentry">
+                <header>
+                        <h1><a href="/esda.html" rel="bookmark" title="Permalink to Exploratory data analysis for spatial interaction">Exploratory data analysis for spatial interaction</a></h1>
+                </header>
+
+                <div class="entry-content">
+<footer class="post-info">
+        <abbr class="published" title="2016-07-01T19:08:00-07:00">
+                Fri 01 July 2016
+        </abbr>
+
+        <address class="vcard author">
+                By <a class="url fn" href="/author/taylor-oshan.html">Taylor Oshan</a>
+        </address>
+<p>In <a href="/category/misc.html">misc</a>. </p>
+<p>tags: <a href="/tag/gsoc.html">GSOC</a></p></p></footer><!-- /.post-info --><!-- /.post-info -->
+                <p>Over the past two weeks I have worked on some exploratory tools for spatial
+interaction data. First, I have coded up a recently proposed spatial
+autocorrelation statistic for vectors. The statistic itself is a variation of
+Moran's I, though it requires unique randomization technqiues to carry out
+significance testing ...</p>
+                <a class="readmore" href="/esda.html">read more</a>
+                </div><!-- /.entry-content -->
+        </article></li>
+        <li><article class="hentry">
+                <header>
+                        <h1><a href="/testing.html" rel="bookmark" title="Permalink to Testing...one...two...">Testing...one...two...</a></h1>
+                </header>
+
+                <div class="entry-content">
+<footer class="post-info">
+        <abbr class="published" title="2016-06-22T08:44:00-07:00">
+                Wed 22 June 2016
+        </abbr>
+
+        <address class="vcard author">
+                By <a class="url fn" href="/author/taylor-oshan.html">Taylor Oshan</a>
+        </address>
+<p>In <a href="/category/misc.html">misc</a>. </p>
+<p>tags: <a href="/tag/gsoc.html">GSOC</a></p></p></footer><!-- /.post-info --><!-- /.post-info -->
+                
+                <a class="readmore" href="/testing.html">read more</a>
+                </div><!-- /.entry-content -->
+        </article></li>
+        <li><article class="hentry">
+                <header>
+                        <h1><a href="/sparse_cat_bottleneck.html" rel="bookmark" title="Permalink to Sparse Categorical Variables Bottleneck">Sparse Categorical Variables Bottleneck</a></h1>
+                </header>
+
+                <div class="entry-content">
+<footer class="post-info">
+        <abbr class="published" title="2016-06-21T09:06:00-07:00">
+                Tue 21 June 2016
+        </abbr>
+
+        <address class="vcard author">
+                By <a class="url fn" href="/author/taylor-oshan.html">Taylor Oshan</a>
+        </address>
+<p>In <a href="/category/misc.html">misc</a>. </p>
+<p>tags: <a href="/tag/gsoc.html">GSOC</a></p></p></footer><!-- /.post-info --><!-- /.post-info -->
+                
+                <a class="readmore" href="/sparse_cat_bottleneck.html">read more</a>
+                </div><!-- /.entry-content -->
+        </article></li>
+        <li><article class="hentry">
+                <header>
+                        <h1><a href="/more-sparse.html" rel="bookmark" title="Permalink to Further tests with sparse data structure for spatial interaction models">Further tests with sparse data structure for spatial interaction models</a></h1>
+                </header>
+
+                <div class="entry-content">
+<footer class="post-info">
+        <abbr class="published" title="2016-06-10T16:30:00-07:00">
+                Fri 10 June 2016
+        </abbr>
+
+        <address class="vcard author">
+                By <a class="url fn" href="/author/taylor-oshan.html">Taylor Oshan</a>
+        </address>
+<p>In <a href="/category/misc.html">misc</a>. </p>
+<p>tags: <a href="/tag/gsoc.html">GSOC</a></p></p></footer><!-- /.post-info --><!-- /.post-info -->
+                
+                <a class="readmore" href="/more-sparse.html">read more</a>
+                </div><!-- /.entry-content -->
+        </article></li>
+        <li><article class="hentry">
+                <header>
+                        <h1><a href="/sparse_glm.html" rel="bookmark" title="Permalink to Generalized Linear Models and Sparse Design Matrices">Generalized Linear Models and Sparse Design Matrices</a></h1>
+                </header>
+
+                <div class="entry-content">
+<footer class="post-info">
+        <abbr class="published" title="2016-06-03T16:12:00-07:00">
+                Fri 03 June 2016
+        </abbr>
+
+        <address class="vcard author">
+                By <a class="url fn" href="/author/taylor-oshan.html">Taylor Oshan</a>
+        </address>
+<p>In <a href="/category/misc.html">misc</a>. </p>
+<p>tags: <a href="/tag/gsoc.html">GSOC</a></p></p></footer><!-- /.post-info --><!-- /.post-info -->
+                
+                <a class="readmore" href="/sparse_glm.html">read more</a>
+                </div><!-- /.entry-content -->
+        </article></li>
+        <li><article class="hentry">
+                <header>
+                        <h1><a href="/framework.html" rel="bookmark" title="Permalink to SpInt Framework">SpInt Framework</a></h1>
+                </header>
+
+                <div class="entry-content">
+<footer class="post-info">
+        <abbr class="published" title="2016-05-27T08:45:00-07:00">
+                Fri 27 May 2016
+        </abbr>
+
+        <address class="vcard author">
+                By <a class="url fn" href="/author/taylor-oshan.html">Taylor Oshan</a>
+        </address>
+<p>In <a href="/category/misc.html">misc</a>. </p>
+<p>tags: <a href="/tag/gsoc.html">GSOC</a></p></p></footer><!-- /.post-info --><!-- /.post-info -->
+                
+                <a class="readmore" href="/framework.html">read more</a>
+                </div><!-- /.entry-content -->
+        </article></li>
+        <li><article class="hentry">
+                <header>
+                        <h1><a href="/api-design.html" rel="bookmark" title="Permalink to Initial GSOC meeting - API Design">Initial GSOC meeting - API Design</a></h1>
+                </header>
+
+                <div class="entry-content">
+<footer class="post-info">
+        <abbr class="published" title="2016-05-20T11:23:00-07:00">
+                Fri 20 May 2016
+        </abbr>
+
+        <address class="vcard author">
+                By <a class="url fn" href="/author/taylor-oshan.html">Taylor Oshan</a>
+        </address>
+<p>In <a href="/category/misc.html">misc</a>. </p>
+<p>tags: <a href="/tag/gsoc.html">GSOC</a></p></p></footer><!-- /.post-info --><!-- /.post-info -->
+                
+                <a class="readmore" href="/api-design.html">read more</a>
+                </div><!-- /.entry-content -->
+        </article></li>
+        <li><article class="hentry">
+                <header>
+                        <h1><a href="/hello-world.html" rel="bookmark" title="Permalink to Hello World">Hello World</a></h1>
+                </header>
+
+                <div class="entry-content">
+<footer class="post-info">
+        <abbr class="published" title="2016-03-21T22:01:00-07:00">
+                Mon 21 March 2016
+        </abbr>
+
+        <address class="vcard author">
+                By <a class="url fn" href="/author/taylor-oshan.html">Taylor Oshan</a>
+        </address>
+<p>In <a href="/category/misc.html">misc</a>. </p>
+<p>tags: <a href="/tag/gsoc.html">GSOC</a></p></p></footer><!-- /.post-info --><!-- /.post-info -->
+                
+                <a class="readmore" href="/hello-world.html">read more</a>
+                </div><!-- /.entry-content -->
+        </article></li>
+</ol><!-- /#posts-list -->
+</section><!-- /#content -->
+
+        <aside id="sidebar">
+                <div class="widget">
+                        <h2>Categories</h2>
+                        <ul>
+                           <li ><a href="/category/misc.html">misc</a></li>
+                        </ul>
+                </div>
+                <div class="widget blogroll">
+                        <h2>Blogroll</h2>
+                        <ul>
+                            <li><a href="http://getpelican.com/">Pelican</a></li>
+                            <li><a href="http://python.org/">Python.org</a></li>
+                            <li><a href="http://jinja.pocoo.org/">Jinja2</a></li>
+                            <li><a href="#">You can modify those links in your config file</a></li>
+                        </ul>
+                </div><!-- /.blogroll -->
+                <div class="widget social">
+                        <h2>Social</h2>
+                        <ul>
+                            <li><a href="/feeds/all.atom.xml" rel="alternate">atom feed</a></li>
+
+                            <li><a href="#">You can add links in your config file</a></li>
+                            <li><a href="#">Another social link</a></li>
+                        </ul>
+                </div><!-- /.social -->
+        </aside><!-- /#sidebar -->
+
+        <footer id="footer" class="body">
+                <address id="about" class="vcard body">
+                Proudly powered by <a href="http://alexis.notmyidea.org/pelican/">pelican</a>, which takes great advantages of <a href="http://python.org">python</a>.
+                </address><!-- /#about -->
+
+                <p>The theme is «notmyidea-cms», a modified version of «notmyidea», the default theme.</p>
+        </footer><!-- /#footer -->
+
+</body>
+</html>
